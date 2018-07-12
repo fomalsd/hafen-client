@@ -29,8 +29,11 @@ package haven;
 import java.util.*;
 
 public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
+    public static final String PLAYER_RES = "gfx/borka/body";
+
     public Coord2d rc;
     public Coord sc;
+
     public Coord3f sczu;
     public double a;
     public boolean virtual = false;
@@ -49,6 +52,7 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
     };
     private final Collection<ResAttr.Cell<?>> rdata = new LinkedList<ResAttr.Cell<?>>();
     private final Collection<ResAttr.Load> lrdata = new LinkedList<ResAttr.Load>();
+	private GobPath path;
 
     public static class Overlay implements Rendered {
 	public Indir<Resource> res;
@@ -248,7 +252,7 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
     }
 
     public Coord3f getrc() {
-	return(glob.map.getzp(rc));
+	    return(glob.map.getzp(rc));
     }
 
     private Class<? extends GAttrib> attrclass(Class<? extends GAttrib> cl) {
@@ -263,6 +267,13 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
     public void setattr(GAttrib a) {
 	Class<? extends GAttrib> ac = attrclass(a.getClass());
 	attr.put(ac, a);
+    if (Config.showGobPaths.get() && ac == Moving.class) {
+        if (path == null) {
+            path = new GobPath(this);
+            ols.add(new Overlay(path));
+        }
+        path.move((Moving)a);
+    }
     }
 
     public <C extends GAttrib> C getattr(Class<C> c) {
@@ -273,7 +284,11 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
     }
 
     public void delattr(Class<? extends GAttrib> c) {
-	attr.remove(attrclass(c));
+    Class acl = attrclass(c);
+	attr.remove(acl);
+    if (path != null && acl == Moving.class) {
+        path.stop();
+    }
     }
 
     private Class<? extends ResAttr> rattrclass(Class<? extends ResAttr> cl) {
@@ -372,6 +387,13 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
 
     public boolean setup(RenderList rl) {
 	loc.tick();
+
+    CustomGobInfo info = getattr(CustomGobInfo.class);
+    if (info == null) {
+        info = new CustomGobInfo(this);
+        setattr(info);
+    }
+
 	for(Overlay ol : ols)
 	    rl.add(ol, null);
 	for(Overlay ol : ols) {
@@ -381,15 +403,32 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
 	GobHealth hlt = getattr(GobHealth.class);
 	if(hlt != null)
 	    rl.prepc(hlt.getfx());
-	Drawable d = getattr(Drawable.class);
-	if(d != null)
-	    d.setup(rl);
+
+    if (!info.isHidden()) {
+        Drawable d = info.getReplacement();
+        if (d == null)
+            d = getattr(Drawable.class);
+        if (d != null)
+            d.setup(rl);
+    }
+
 	Speaking sp = getattr(Speaking.class);
 	if(sp != null)
 	    rl.add(sp.fx, null);
 	KinInfo ki = getattr(KinInfo.class);
 	if(ki != null)
 	    rl.add(ki.fx, null);
+
+	if (Config.showGobInfo.get()) {
+		GobInfo gi = getattr(GobInfo.class);
+		if (gi == null) {
+			gi = GobInfo.get(this);
+			if (gi != null)
+				setattr(gi);
+		}
+		if (gi != null)
+			rl.add(gi.tex(), null);
+	}
 	return(false);
     }
 
@@ -398,8 +437,8 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
     public Object staticp() {
 	if(seq == null) {
 	    int rs = 0;
-	    for(GAttrib attr : attr.values()) {
-		Object as = attr.staticp();
+	    for(GAttrib attrv : attr.values()) {
+		Object as = attrv.staticp();
 		if(as == Rendered.CONSTANS) {
 		} else if(as instanceof Static) {
 		} else if(as == SemiStatic.class) {
@@ -491,7 +530,7 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
 
     public final Save save = new Save();
     public class GobLocation extends GLState.Abstract {
-	private Coord3f c = null;
+	public Coord3f c = null;
 	private double a = 0.0;
 	private Matrix4f update = null;
 	private final Location xl = new Location(Matrix4f.id, "gobx"), rot = new Location(Matrix4f.id, "gob");
@@ -513,4 +552,39 @@ public class Gob implements Sprite.Owner, Skeleton.ModOwner, Rendered {
 	}
     }
     public final GobLocation loc = new GobLocation();
+
+    public boolean isPlayer() {
+        try {
+            Resource res = getres();
+            return (res != null) && PLAYER_RES.equals(res.name);
+        } catch (Loading e) {
+            return false;
+        }
+    }
+
+    public boolean isThreat() {
+        KinInfo kin = getattr(KinInfo.class);
+        return (kin == null) || (kin.group == 2 /* RED */);
+    }
+
+    public boolean isAlly() {
+        KinInfo kin = getattr(KinInfo.class);
+        return (kin != null) && (
+            kin.group == 1 || /* GREEN */
+            kin.group == 4 || /* CYAN */
+            kin.group == 5)   /* YELLOW */;
+    }
+
+    public MinimapIcon getMinimapIcon() {
+        if (Config.showCustomIcons.get()) {
+            CustomGobIcon icon = getattr(CustomGobIcon.class);
+            if (icon == null) {
+                icon = new CustomGobIcon(this, glob.icons);
+                setattr(icon);
+            }
+            return icon;
+        } else {
+            return getattr(GobIcon.class);
+        }
+    }
 }

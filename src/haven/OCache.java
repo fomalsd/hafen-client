@@ -199,6 +199,7 @@ public class OCache implements Iterable<Gob> {
 	    g.setattr(new ResDrawable(g, res, sdt));
 	}
 	changed(g);
+	g.delattr(GobInfo.class);
     }
     public void cres(Gob gob, Message msg) {
 	int resid = msg.uint16();
@@ -572,6 +573,7 @@ public class OCache implements Iterable<Gob> {
     public synchronized void health(Gob g, int hp) {
 	g.setattr(new GobHealth(g, hp));
 	changed(g);
+	g.delattr(GobInfo.class);
     }
     public void health(Gob gob, Message msg) {
 	int hp = msg.uint8();

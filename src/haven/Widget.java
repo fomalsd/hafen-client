@@ -854,6 +854,18 @@ public class Widget {
 	}
 	return(false);
     }
+
+    public boolean mouseclick(Coord c, int button, int count) {
+        for(Widget wdg = lchild; wdg != null; wdg = wdg.prev) {
+            if(!wdg.visible)
+                continue;
+            Coord cc = xlate(wdg.c, true);
+            if(c.isect(cc, wdg.sz))
+                if(wdg.mouseclick(c.add(cc.inv()), button, count))
+                    return(true);
+        }
+        return(false);
+    }
     
     public Area area() {
 	return(Area.sized(c, sz));
@@ -883,10 +895,6 @@ public class Widget {
 
     public void pack() {
 	resize(contentsz());
-    }
-    
-    public void move(Coord c) {
-	this.c = c;
     }
 
     public void resize(Coord sz) {
@@ -1091,12 +1099,30 @@ public class Widget {
 	return(show);
     }
 
+    public void toggle() {
+        if (visible)
+            hide();
+        else
+            show();
+    }
+
     public boolean tvisible() {
 	for(Widget w = this; w != null; w = w.parent) {
 	    if(!w.visible)
 		return(false);
 	}
 	return(true);
+    }
+
+    // called once widget is bound to the server ID
+    public void bound() {}
+
+    public void move(int x, int y) {
+        move(new Coord(x, y));
+    }
+
+    public void move(Coord c) {
+        this.c = new Coord(c);
     }
 
     public final Collection<Anim> anims = new LinkedList<Anim>();
@@ -1130,6 +1156,17 @@ public class Widget {
 
 	public abstract boolean tick(double dt);
     }
+
+	public Widget childat(Coord c) {
+		for(Widget wdg = lchild; wdg != null; wdg = wdg.prev) {
+			if(!wdg.visible)
+				continue;
+			Coord cc = xlate(wdg.c, true);
+			if(c.isect(cc, wdg.sz))
+				return wdg;
+		}
+		return null;
+	}
 
     public abstract class NormAnim extends Anim {
 	private double a = 0.0;

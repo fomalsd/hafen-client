@@ -26,6 +26,9 @@
 
 package haven;
 
+import haven.minimap.*;
+import haven.util.ObservableCollection;
+
 import java.util.*;
 import java.awt.Color;
 
@@ -36,6 +39,9 @@ public class Glob {
     public MCache map;
     public Session sess;
     public Party party;
+    public ObservableCollection<Pagina> paginae = new ObservableCollection<Pagina>(new HashSet<Pagina>());
+    public int pagseq = 0;
+    public Map<Resource.Named, Pagina> pmap = new WeakHashMap<Resource.Named, Pagina>();
     public Map<String, CAttr> cattr = new HashMap<String, CAttr>();
     public Color lightamb = null, lightdif = null, lightspc = null;
     public Color olightamb = null, olightdif = null, olightspc = null;
@@ -47,11 +53,13 @@ public class Glob {
     public Indir<Resource> sky1 = null, sky2 = null;
     public double skyblend = 0.0;
     private Map<Indir<Resource>, Object> wmap = new HashMap<Indir<Resource>, Object>();
-    
+    public final CustomIconCache icons;
+
     public Glob(Session sess) {
 	this.sess = sess;
 	map = new MCache(sess);
 	party = new Party(this);
+    icons = new CustomIconCache(this);
     }
 
     @Resource.PublishedCode(name = "wtr")
@@ -63,7 +71,7 @@ public class Glob {
 
     public static class CAttr extends Observable {
 	String nm;
-	int base, comp;
+	public int base, comp;
 	
 	public CAttr(String nm, int base, int comp) {
 	    this.nm = nm.intern();
@@ -80,7 +88,7 @@ public class Glob {
 	    notifyObservers(null);
 	}
     }
-    
+
     private static Color colstep(Color o, Color t, double a) {
 	int or = o.getRed(), og = o.getGreen(), ob = o.getBlue(), oa = o.getAlpha();
 	int tr = t.getRed(), tg = t.getGreen(), tb = t.getBlue(), ta = t.getAlpha();

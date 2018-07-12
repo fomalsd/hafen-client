@@ -746,17 +746,17 @@ public class FightWnd extends Widget {
 	actlist = add(new Actions(250, 8), new Coord(245, 35).add(wbox.btloff()));
 	Frame.around(this, Collections.singletonList(actlist));
 
-	p = add(new BView(), 5, 200);
+	p = add(new BView(), 5, 250);
 	count = add(new Label(""), p.c.add(p.sz.x + 10, 0));
 
-	savelist = add(new Savelist(370, 3), new Coord(5, 238).add(wbox.btloff()));
+	savelist = add(new Savelist(370, 3), new Coord(5, 288).add(wbox.btloff()));
 	Frame.around(this, Collections.singletonList(savelist));
 	add(new Button(110, "Load", false) {
 		public void click() {
 		    load(savelist.sel);
 		    use(savelist.sel);
 		}
-	    }, 395, 238);
+	    }, 395, 288);
 	add(new Button(110, "Save", false) {
 		public void click() {
 		    if(savelist.sel < 0) {
@@ -766,7 +766,7 @@ public class FightWnd extends Widget {
 			use(savelist.sel);
 		    }
 		}
-	    }, 395, 265);
+	    }, 395, 315);
 	pack();
     }
 

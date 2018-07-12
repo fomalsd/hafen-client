@@ -49,12 +49,18 @@ public class Buff extends Widget implements ItemInfo.ResOwner {
     String tt = null;
     int ameter = -1;
     int nmeter = -1;
+    int cmeter = -1;
+    int cticks = -1;
+    long gettime;
     Tex ntext = null;
+    int a = 255;
+    boolean dest = false;
+    private Resource.Image img;
 
     @RName("buff")
     public static class $_ implements Factory {
-	public Widget create(UI ui, Object[] args) {
-	    Indir<Resource> res = ui.sess.getres((Integer)args[0]);
+	public Widget create(Widget parent, Object[] args) {
+	    Indir<Resource> res = parent.ui.sess.getres((Integer)args[0]);
 	    return(new Buff(res));
 	}
     }
@@ -118,15 +124,18 @@ public class Buff extends Widget implements ItemInfo.ResOwner {
 	} else {
 	    g.image(frame, Coord.z);
 	}
-	try {
-	    Tex img = res.get().layer(Resource.imgc).tex();
-	    g.image(img, imgoff);
-	    Tex nmeter = (this.nmeter >= 0) ? nmeter() : nmeteri.get();
-	    if(nmeter != null)
-		g.aimage(nmeter, imgoff.add(img.sz()).sub(1, 1), 1, 1);
-	    Double cmeter;
-	    if(this.cmeter >= 0) {
-		double m = this.cmeter / 100.0;
+    if (img == null) {
+        try {
+            img = res.get().layer(Resource.imgc);
+        } catch (Loading e) {}
+    }
+    if (img != null) {
+        Tex tex = img.tex();
+	    g.image(tex, imgoff);
+	    if(nmeter >= 0)
+		g.aimage(nmeter(), imgoff.add(tex.sz()).sub(1, 1), 1, 1);
+	    if(cmeter >= 0) {
+		double m = cmeter / 100.0;
 		if(cticks >= 0) {
 		    double ot = cticks * 0.06;
 		    double pt = Utils.rtime() - gettime;
@@ -139,11 +148,11 @@ public class Buff extends Widget implements ItemInfo.ResOwner {
 	    if(cmeter != null) {
 		double m = Utils.clip(cmeter, 0.0, 1.0);
 		g.chcolor(255, 255, 255, a / 2);
-		Coord ccc = img.sz().div(2);
-		g.prect(imgoff.add(ccc), ccc.inv(), img.sz().sub(ccc), Math.PI * 2 * m);
+		Coord ccc = tex.sz().div(2);
+		g.prect(imgoff.add(ccc), ccc.inv(), tex.sz().sub(ccc), Math.PI * 2 * m);
 		g.chcolor(255, 255, 255, a);
 	    }
-	} catch(Loading e) {}
+	}
     }
 
     private BufferedImage shorttip() {
@@ -228,6 +237,7 @@ public class Buff extends Widget implements ItemInfo.ResOwner {
     public void uimsg(String msg, Object... args) {
 	if(msg == "ch") {
 	    this.res = ui.sess.getres((Integer)args[0]);
+        this.img = null;
 	} else if(msg == "tt") {
 	    info = null;
 	    rawinfo = args;
@@ -253,5 +263,9 @@ public class Buff extends Widget implements ItemInfo.ResOwner {
     public boolean mousedown(Coord c, int btn) {
 	wdgmsg("cl", c.sub(imgoff), btn, ui.modflags());
 	return(true);
+    }
+
+    public Resource.Image getImage() {
+        return img;
     }
 }

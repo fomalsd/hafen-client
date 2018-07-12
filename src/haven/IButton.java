@@ -29,24 +29,31 @@ package haven;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
-public class IButton extends SIWidget {
+public class IButton extends SSWidget {
     BufferedImage up, down, hover;
     boolean h = false;
     boolean a = false;
     UI.Grab d = null;
+    boolean pixelperfect;
 
     @RName("ibtn")
     public static class $_ implements Factory {
-	public Widget create(UI ui, Object[] args) {
+	public Widget create(Widget parent, Object[] args) {
 	    return(new IButton(Resource.loadimg((String)args[0]), Resource.loadimg((String)args[1])));
 	}
     }
 
+    public IButton(BufferedImage up, BufferedImage down, BufferedImage hover, boolean pixelperfect) {
+        super(Utils.imgsz(up));
+        this.up = up;
+        this.down = down;
+        this.hover = hover;
+        this.pixelperfect = pixelperfect;
+        render();
+    }
+
     public IButton(BufferedImage up, BufferedImage down, BufferedImage hover) {
-	super(Utils.imgsz(up));
-	this.up = up;
-	this.down = down;
-	this.hover = hover;
+        this(up, down, hover, true);
     }
 
     public IButton(BufferedImage up, BufferedImage down) {
@@ -57,21 +64,22 @@ public class IButton extends SIWidget {
 	this(Resource.loadimg(base + up), Resource.loadimg(base + down), Resource.loadimg(base + (hover == null?up:hover)));
     }
 
-    public void draw(BufferedImage buf) {
-	Graphics g = buf.getGraphics();
+    public void render() {
+	clear();
+	Graphics g = graphics();
 	if(a)
 	    g.drawImage(down, 0, 0, null);
 	else if(h)
 	    g.drawImage(hover, 0, 0, null);
 	else
 	    g.drawImage(up, 0, 0, null);
-	g.dispose();
+	update();
     }
 
     public boolean checkhit(Coord c) {
 	if(!c.isect(Coord.z, sz))
 	    return(false);
-	if(up.getRaster().getNumBands() < 4)
+	if(!pixelperfect || up.getRaster().getNumBands() < 4)
 	    return(true);
 	return(up.getRaster().getSample(c.x, c.y, 3) >= 128);
     }
@@ -94,7 +102,7 @@ public class IButton extends SIWidget {
 	a = true;
 	d = ui.grabmouse(this);
 	depress();
-	redraw();
+	render();
 	return(true);
     }
 
@@ -122,7 +130,7 @@ public class IButton extends SIWidget {
 	if((h != this.h) || (a != this.a)) {
 	    this.h = h;
 	    this.a = a;
-	    redraw();
+	    render();
 	}
     }
 

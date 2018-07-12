@@ -69,6 +69,7 @@ public class Session implements Resource.Resolver {
     final Map<Integer, CachedRes> rescache = new TreeMap<Integer, CachedRes>();
     public final Glob glob;
     public byte[] sesskey;
+    public String charname;
 
     @SuppressWarnings("serial")
     public static class MessageException extends RuntimeException {

@@ -64,4 +64,8 @@ public class Homing extends Moving {
     public void ctick(int dt) {
 	dist += v * ((dt / 1000.0) * 0.9);
     }
+
+    public Gob tgt() {
+        return(gob.glob.oc.getgob(this.tgt));
+    }
 }

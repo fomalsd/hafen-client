@@ -26,13 +26,17 @@
 
 package haven;
 
+import java.awt.*;
 import java.util.*;
 import static haven.Inventory.invsq;
 
 public class Equipory extends Widget implements DTarget {
     private static final Tex bg = Resource.loadtex("gfx/hud/equip/bg");
     private static final int rx = 34 + bg.sz().x;
-    public static final Coord ecoords[] = {
+    private static final int acx = 34 + bg.sz().x/2;
+    private static final Text.Foundry acf = new Text.Foundry(Text.fraktur, 16).aa(true);
+    private Tex armorclass = null;
+    static Coord ecoords[] = {
 	new Coord(0, 0),
 	new Coord(rx, 0),
 	new Coord(0, 33),
@@ -71,19 +75,19 @@ public class Equipory extends Widget implements DTarget {
 	    }
 	}
     }
+
+    WItem[] slots = new WItem[ecoords.length];
     Map<GItem, WItem[]> wmap = new HashMap<GItem, WItem[]>();
     private final Avaview ava;
 
     @RName("epry")
     public static class $_ implements Factory {
-	public Widget create(UI ui, Object[] args) {
+	public Widget create(Widget parent, Object[] args) {
 	    long gobid;
 	    if(args.length < 1)
-		gobid = -2;
-	    else if(args[0] == null)
-		gobid = -1;
+		gobid = parent.getparent(GameUI.class).plid;
 	    else
-		gobid = Utils.uint32((Integer)args[0]);
+		gobid = (Integer)args[0];
 	    return(new Equipory(gobid));
 	}
     }
@@ -128,8 +132,14 @@ public class Equipory extends Widget implements DTarget {
 	    for(int i = 0; i < args.length; i++) {
 		int ep = (Integer)args[i];
 		v[i] = add(new WItem(g), ecoords[ep].add(1, 1));
+	    	slots[ep] = v[i];
 	    }
 	    wmap.put(g, v);
+
+            if (armorclass != null) {
+                armorclass.dispose();
+                armorclass = null;
+            }
 	} else {
 	    super.addchild(child, args);
 	}
@@ -139,8 +149,17 @@ public class Equipory extends Widget implements DTarget {
 	super.cdestroy(w);
 	if(w instanceof GItem) {
 	    GItem i = (GItem)w;
-	    for(WItem v : wmap.remove(i))
+	    for(WItem v : wmap.remove(i)) {
 		ui.destroy(v);
+		for(int s = 0; s < slots.length; s++) {
+		    if(slots[s] == v)
+			slots[s] = null;
+		}
+	    }
+            if (armorclass != null) {
+                armorclass.dispose();
+                armorclass = null;
+            }
 	}
     }
 
@@ -152,16 +171,14 @@ public class Equipory extends Widget implements DTarget {
 	}
     }
 
-    public int epat(Coord c) {
-	for(int i = 0; i < ecoords.length; i++) {
-	    if(c.isect(ecoords[i], invsq.sz()))
-		return(i);
-	}
-	return(-1);
-    }
-
     public boolean drop(Coord cc, Coord ul) {
-	wdgmsg("drop", epat(cc));
+	for(int i = 0; i < ecoords.length; i++) {
+	    if(ul.isect(ecoords[i], invsq.sz())) {
+		wdgmsg("drop", i);
+		return(true);
+	    }
+	}
+	wdgmsg("drop", -1);
 	return(true);
     }
 
@@ -199,8 +216,34 @@ public class Equipory extends Widget implements DTarget {
     }
 
     public void draw(GOut g) {
-	drawslots(g);
+	for(int i = 0; i < 16; i++)
+	    g.image(invsq, ecoords[i]);
 	super.draw(g);
+
+        if (armorclass == null) {
+            int h = 0, s = 0;
+            try {
+                for (int i = 0; i < slots.length; i++) {
+                    WItem itm = slots[i];
+                    if (itm != null) {
+                        for (ItemInfo info : itm.item.info()) {
+                            if (info.getClass().getSimpleName().equals("Wear")) {
+                                try {
+                                    h += (Integer)info.getClass().getDeclaredField("hard").get(info);
+                                    s += (Integer)info.getClass().getDeclaredField("soft").get(info);
+                                } catch (Exception ex) { // ignore everything
+                                }
+                            }
+
+                        }
+                    }
+                }
+                armorclass = acf.render("Armor Class: " + h + "/" + s, Color.BLACK).tex();
+            } catch (Exception e) { // fail silently
+            }
+        }
+        if (armorclass != null)
+            g.image(armorclass, new Coord(acx - armorclass.sz().x/2, bg.sz().y - 20));
     }
 
     public boolean iteminteract(Coord cc, Coord ul) {
